@@ -1,0 +1,17 @@
+image: elixir:latest
+
+services:
+  - redis:latest
+
+before_script:
+  - apt update -y
+  - apt upgrade -y
+  - apt install gcc g++ make cmake clang -y
+  - mix local.rebar --force
+  - mix local.hex --force
+  - mix deps.get
+  - redis-server &
+
+mix:
+  script:
+    - NODE="gitlab_ci" mix test
