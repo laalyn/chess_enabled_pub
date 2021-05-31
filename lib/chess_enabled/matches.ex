@@ -155,7 +155,7 @@ order by moves.row, moves.col, moves.idx desc)
     # if time spent is over 10 minutes, close the match
     players
     |> Enum.each(fn ({key, val}) ->
-      if div(val.time_spent + (if val.running, do: abs(DateTime.diff(DateTime.utc_now, val.running, :microsecond)), else: 0), 60_000_000) >= 10 do
+      if div(val.time_spent + (if val.running, do: abs(DateTime.diff(DateTime.utc_now, val.running, :microsecond)), else: 0), 60_000_000) >= 15 do
         close_match_imp(match.id)
 
         raise Codes.closed
@@ -417,6 +417,14 @@ order by moves.row, moves.col, moves.idx desc)
                 if board[to_r][to_c] !== nil do
                   raise "pawn cannot conquer going forward"
                 end
+            end
+
+            # emergency fix for pawn
+            if delta_r == -2 do
+              # make sure pawn is not moving horizontally
+              if abs(delta_c) > 0 do
+                raise "pawn moved too much horizontally"
+              end
             end
           "rook" -> nil
             if delta_r != 0 && delta_c != 0 do
@@ -908,7 +916,7 @@ order by moves.row, moves.col, moves.idx desc)
       # {nil, _, true} -> tied
       # {player_id, _, true} -> player with id player_id lost, and the other won
       {loser, _, close} = Enum.reduce(players, {nil, nil, false}, fn ({key, val}, {loser, real_time_spent, close}) ->
-        if div(val.real_time_spent, 60_000_000) >= 10 do
+        if div(val.real_time_spent, 60_000_000) >= 15 do
           cond do
             loser === nil || val.real_time_spent > real_time_spent ->
               {val.id, val.real_time_spent, true}
@@ -1206,7 +1214,13 @@ order by moves.row, moves.col, moves.idx desc)
         inc_idx_query
         |> Repo.update_all([])
 
-        [{cur.user_id, user_idx} | acc]
+        match = %{
+          status: cur.status,
+          elo_delta: cur.elo_delta,
+          match_id: cur.match_id,
+        }
+
+        [{cur.user_id, user_idx, match} | acc]
       end)
 
       # close the match

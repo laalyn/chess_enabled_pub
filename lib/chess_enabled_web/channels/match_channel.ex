@@ -34,8 +34,8 @@ defmodule ChessEnabledWeb.MatchChannel do
       {:ok, {:ok, match_idx, time_spent, running, from_r, from_c, to_r, to_c, closed, users}} = Matches.send_move!(user_id, match_id, piece_id, to_r, to_c)
       if closed do
         users
-        |> Enum.each(fn ({user_id, user_idx}) ->
-          Endpoint.broadcast!("matches:" <> user_id, "match_closed", %{idx: user_idx, match_id: match_id})
+        |> Enum.each(fn ({user_id, user_idx, match}) ->
+          Endpoint.broadcast!("matches:" <> user_id, "match_closed", %{idx: user_idx, match: match})
         end)
         broadcast!(socket, "match_closed_with_move", %{idx: match_idx, move: %{user_id: user_id, time_spent: time_spent, running: running, from_r: from_r, from_c: from_c, to_r: to_r, to_c: to_c}})
       else
@@ -92,8 +92,8 @@ defmodule ChessEnabledWeb.MatchChannel do
                  |> Enum.at(1)
       {:ok, {:ok, match_idx, users}} = Matches.close_match!(match_id)
       users
-      |> Enum.each(fn ({user_id, user_idx}) ->
-        Endpoint.broadcast!("matches:" <> user_id, "match_closed", %{idx: user_idx, match_id: match_id})
+      |> Enum.each(fn ({user_id, user_idx, match}) ->
+        Endpoint.broadcast!("matches:" <> user_id, "match_closed", %{idx: user_idx, match: match})
       end)
       broadcast!(socket, "match_closed", %{idx: match_idx})
       {:reply, {:ok, %{status: true}}, socket}
